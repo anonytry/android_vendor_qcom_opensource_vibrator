@@ -53,3 +53,33 @@ prebuilt_etc {
     vendor: true,
     src: "HapticsPolicy.xml",
 }
+
+cc_fuzz {
+    name: "vendor.qti.hardware.vibrator-service.aidl_fuzzer",
+    vendor: true,
+
+    shared_libs: [
+        "liblog",
+        "libbase",
+        "libutils",
+        "libcutils",
+        "libbinder",
+        "libbinder_ndk",
+        "android.hardware.vibrator-V2-ndk",
+        "vendor.qti.hardware.vibrator.impl",
+    ],
+
+    static_libs: [
+        "libbinder_random_parcel",
+    ],
+
+    srcs: [
+        "fuzzer.cpp",
+    ],
+
+    cflags: [
+        "-Wno-unused-parameter",
+        "-Wno-unused-variable",
+        "-fexceptions",
+    ],
+}
