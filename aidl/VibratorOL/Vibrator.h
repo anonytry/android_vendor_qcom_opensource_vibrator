@@ -27,7 +27,7 @@
  * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  * Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
- * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024, Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -35,17 +35,51 @@
 
 #include <aidl/android/hardware/vibrator/BnVibrator.h>
 #include <thread>
+#include <mutex>
 
 namespace aidl {
 namespace android {
 namespace hardware {
 namespace vibrator {
 
-
-class Vibrator : public BnVibrator {
+class InputFFDevice {
 public:
-    Vibrator();
-    ~Vibrator();
+    InputFFDevice();
+    int playEffect(int effectId, EffectStrength es, long *playLengthMs);
+    int playPrimitive(int primitiveId, float amplitude, long *playLengthMs);
+    int on(int32_t timeoutMs);
+    int off();
+    int setAmplitude(uint8_t amplitude);
+    bool mSupportGain;
+    bool mSupportEffects;
+    bool mSupportExternalControl;
+    bool mInExternalControl;
+
+private:
+    int play(int effectId, uint32_t timeoutMs, long *playLengthMs);
+    int mVibraFd;
+    int16_t mCurrAppId;
+    int16_t mCurrMagnitude;
+    std::mutex mtx;
+};
+
+class LedVibratorDevice {
+public:
+    LedVibratorDevice();
+    int on(int32_t timeoutMs);
+    int off();
+    bool mDetected;
+private:
+    int write_value(const char *file, const char *value);
+};
+
+class VibratorOL : public BnVibrator {
+public:
+    bool mSupportVISense;
+    class InputFFDevice ff;
+    class LedVibratorDevice ledVib;
+    VibratorOL();
+    ~VibratorOL();
 
     ndk::ScopedAStatus getCapabilities(int32_t* _aidl_return) override;
     ndk::ScopedAStatus off() override;
@@ -78,11 +112,13 @@ public:
     ndk::ScopedAStatus composePwle(const std::vector<PrimitivePwle> &composite,
                                const std::shared_ptr<IVibratorCallback> &callback) override;
 private:
-    // Forward declare opaque internal implementation class
-    class VibratorOLSelector;
-    class VibratorPrivate;
-    // Pointer to the internal implementation
-    VibratorPrivate *pImpl;
+    static void composePlayThread(VibratorOL *vibrator,
+                        const std::vector<CompositeEffect>& composite,
+                        const std::shared_ptr<IVibratorCallback>& callback);
+    std::thread composeThread;
+    int epollfd;
+    int pipefd[2];
+    std::atomic<bool> inComposition;
 };
 
 }  // namespace vibrator
