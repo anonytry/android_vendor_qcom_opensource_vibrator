@@ -41,34 +41,36 @@
 #include "Vibrator.h"
 #include "VibratorOL/Vibrator.h"
 #include "VibratorCL/Vibrator.h"
+#include "VibratorSelector/VibratorSelector.h"
 
 namespace aidl {
 namespace android {
 namespace hardware {
 namespace vibrator {
 
-
-class Vibrator::VibratorOLSelector {
-public:
-    int32_t mOnTimeMaxMs = 20000;
-    std::vector<Effect> mEffects = {Effect::CLICK, Effect::DOUBLE_CLICK, Effect::TICK, Effect::THUD, Effect::POP, Effect::HEAVY_CLICK};
-    bool mPlayComposition = true;
-    bool mPlayPwle = false;
-
-    void parseEffectSelection() {
-    }
-};
-
 class Vibrator::VibratorPrivate {
 private:
     VibratorOL mVibratorOL;
     VibratorCL mVibratorCL;
-    VibratorOLSelector mOLSelector;
     IVibrator* mSelectedVibrator;
     std::mutex VibratorSelectionLock;
-    bool mSupportCL = mVibratorOL.mSupportVISense;
-
+    bool mSupportCL;
+    std::shared_ptr<VibratorSelector> mVibSelector;
 public:
+    VibratorPrivate() {
+        mSupportCL = mVibratorOL.mSupportVISense;
+        mVibSelector = nullptr;
+        mSelectedVibrator = &mVibratorOL;
+        int32_t ret;
+
+        if (mSupportCL) {
+            ret = VibratorSelector::init();
+            if (!ret) {
+                mVibSelector = VibratorSelector::GetInstance();
+            }
+        }
+    }
+
     ndk::ScopedAStatus getCapabilities(int32_t* _aidl_return) {
         int32_t capabilities;
 
@@ -86,9 +88,14 @@ public:
         ndk::ScopedAStatus status;
 
         VibratorSelectionLock.lock();
-        if (!mSupportCL || (timeoutMs <= mOLSelector.mOnTimeMaxMs))
-            mSelectedVibrator = &mVibratorOL;
-        else
+
+        if (!mVibSelector) {
+            VibratorSelectionLock.unlock();
+            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+        }
+
+        mSelectedVibrator = &mVibratorOL;
+        if (mVibSelector->getVibForOnApi(timeoutMs) == VIB_TYPE_CL)
             mSelectedVibrator = &mVibratorCL;
 
         status = mSelectedVibrator->on(timeoutMs, callback);
@@ -109,15 +116,19 @@ public:
     }
 
     ndk::ScopedAStatus perform(Effect effect, EffectStrength es, const std::shared_ptr<IVibratorCallback>& callback, int32_t* _aidl_return) {
-        std::vector<Effect> OLEffects = mOLSelector.mEffects;
-        bool useOLVibrator =
-            std::find(OLEffects.begin(), OLEffects.end(), effect) != OLEffects.end();
+
+        int effect_id = static_cast<int> (effect);
         ndk::ScopedAStatus status;
 
         VibratorSelectionLock.lock();
-        if (!mSupportCL || useOLVibrator)
-            mSelectedVibrator = &mVibratorOL;
-        else
+
+        if (!mVibSelector) {
+            VibratorSelectionLock.unlock();
+            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+        }
+
+        mSelectedVibrator = &mVibratorOL;
+        if (mVibSelector->getVibForPerformApi(effect_id) == VIB_TYPE_CL)
             mSelectedVibrator = &mVibratorCL;
 
         status = mSelectedVibrator->perform(effect, es, callback, _aidl_return);
@@ -157,10 +168,12 @@ public:
         ndk::ScopedAStatus status;
 
         VibratorSelectionLock.lock();
+
         if (mSupportCL)
             mVibratorCL.setExternalControl(enabled);
 
         status = mVibratorOL.setExternalControl(enabled);
+
         VibratorSelectionLock.unlock();
 
         return status;
@@ -170,9 +183,14 @@ public:
         ndk::ScopedAStatus status;
 
         VibratorSelectionLock.lock();
-        if (!mSupportCL || mOLSelector.mPlayComposition)
-            mSelectedVibrator = &mVibratorOL;
-        else
+
+        if (!mVibSelector) {
+            VibratorSelectionLock.unlock();
+            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+        }
+
+        mSelectedVibrator = &mVibratorOL;
+        if (mVibSelector->getVibForComposeApi() == VIB_TYPE_CL)
             mSelectedVibrator = &mVibratorCL;
 
         status = mSelectedVibrator->getCompositionDelayMax(maxDelayMs);
@@ -185,9 +203,14 @@ public:
         ndk::ScopedAStatus status;
 
         VibratorSelectionLock.lock();
-        if (!mSupportCL || mOLSelector.mPlayComposition)
-            mSelectedVibrator = &mVibratorOL;
-        else
+
+        if (!mVibSelector) {
+            VibratorSelectionLock.unlock();
+            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+        }
+
+        mSelectedVibrator = &mVibratorOL;
+        if (mVibSelector->getVibForComposeApi() == VIB_TYPE_CL)
             mSelectedVibrator = &mVibratorCL;
 
         status = mSelectedVibrator->getCompositionSizeMax(maxSize);
@@ -200,9 +223,14 @@ public:
         ndk::ScopedAStatus status;
 
         VibratorSelectionLock.lock();
-        if (!mSupportCL || mOLSelector.mPlayComposition)
-            mSelectedVibrator = &mVibratorOL;
-        else
+
+        if (!mVibSelector) {
+            VibratorSelectionLock.unlock();
+            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+        }
+
+        mSelectedVibrator = &mVibratorOL;
+        if (mVibSelector->getVibForComposeApi() == VIB_TYPE_CL)
             mSelectedVibrator = &mVibratorCL;
 
         status = mSelectedVibrator->getSupportedPrimitives(supported);
@@ -215,9 +243,14 @@ public:
         ndk::ScopedAStatus status;
 
         VibratorSelectionLock.lock();
-        if (!mSupportCL || mOLSelector.mPlayComposition)
-            mSelectedVibrator = &mVibratorOL;
-        else
+
+        if (!mVibSelector) {
+            VibratorSelectionLock.unlock();
+            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+        }
+
+        mSelectedVibrator = &mVibratorOL;
+        if (mVibSelector->getVibForComposeApi() == VIB_TYPE_CL)
             mSelectedVibrator = &mVibratorCL;
 
         status = mSelectedVibrator->getPrimitiveDuration(primitive, durationMs);
@@ -231,14 +264,18 @@ public:
         ndk::ScopedAStatus status;
 
         VibratorSelectionLock.lock();
-        if (!mSupportCL || mOLSelector.mPlayComposition)
-            mSelectedVibrator = &mVibratorOL;
-        else
+
+        if (!mVibSelector) {
+            VibratorSelectionLock.unlock();
+            return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
+        }
+
+        mSelectedVibrator = &mVibratorOL;
+        if (mVibSelector->getVibForComposeApi() == VIB_TYPE_CL)
             mSelectedVibrator = &mVibratorCL;
 
         status = mSelectedVibrator->compose(composite, callback);
         VibratorSelectionLock.unlock();
-
         return status;
     }
 };
@@ -311,7 +348,7 @@ ndk::ScopedAStatus Vibrator::getSupportedAlwaysOnEffects(std::vector<Effect>* _a
 }
 
 ndk::ScopedAStatus Vibrator::alwaysOnEnable(int32_t id __unused, Effect effect __unused,
-                                           EffectStrength strength __unused) {
+    EffectStrength strength __unused) {
     return ndk::ScopedAStatus(AStatus_fromExceptionCode(EX_UNSUPPORTED_OPERATION));
 }
 
@@ -360,4 +397,3 @@ ndk::ScopedAStatus Vibrator::composePwle(const std::vector<PrimitivePwle>& compo
 }  // namespace hardware
 }  // namespace android
 }  // namespace aidl
-

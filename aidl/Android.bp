@@ -18,8 +18,12 @@ cc_library_shared {
         "android.hardware.vibrator-V2-ndk",
         "vendor.qti.hardware.vibratorOL.impl",
         "vendor.qti.hardware.vibratorCL.impl",
+        "vendor.qti.hardware.vibratorSel.impl",
     ],
-    export_include_dirs: ["include"]
+    export_include_dirs: ["include"],
+    include_dirs: [
+        "external/expat/lib",
+    ]
 }
 
 cc_binary {
@@ -42,4 +46,10 @@ cc_binary {
         "android.hardware.vibrator-V2-ndk",
         "vendor.qti.hardware.vibrator.impl",
     ],
+}
+
+prebuilt_etc {
+    name: "HapticsPolicy.xml",
+    vendor: true,
+    src: "HapticsPolicy.xml",
 }
