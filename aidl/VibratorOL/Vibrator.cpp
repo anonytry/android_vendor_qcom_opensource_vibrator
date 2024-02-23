@@ -438,11 +438,37 @@ int LedVibratorDevice::off()
     return ret;
 }
 
+static bool is_VI_sense_supported() {
+    char visense_sysfs[50];
+    char visense[3];
+    int fd, ret;
+
+    ret = snprintf(visense_sysfs, sizeof(visense_sysfs), "%s%s", HAPTICS_SYSFS, "/visense_enabled");
+    if (ret < 0) {
+        ALOGE("Failed to generate visense_enabled path name, ret = %d\n", ret);
+        return false;
+    }
+
+    fd = TEMP_FAILURE_RETRY(open(visense_sysfs, O_RDONLY));
+    if (fd < 0) {
+        ALOGE("Open %s failed, fd = %d\n", visense_sysfs, fd);
+        return false;
+    }
+
+    ret = TEMP_FAILURE_RETRY(read(fd, visense, sizeof(visense)));
+    close(fd);
+    if (ret < 0) {
+        ALOGE("Failed to read %s, errno = %d\n", visense_sysfs, errno);
+        return false;
+    }
+
+    return atoi(visense);
+}
+
 VibratorOL::VibratorOL() {
     struct epoll_event ev;
 
-    /*TBD: read sysfs entry at /sys/class/qcom-haptics/ to set mSupportVISense flag */
-    mSupportVISense = false;
+    mSupportVISense = is_VI_sense_supported();
 
     epollfd = INVALID_VALUE;
     pipefd[0] = INVALID_VALUE;
