@@ -79,7 +79,6 @@ public:
                                const std::shared_ptr<IVibratorCallback> &callback) override;
 private:
     // Forward declare opaque internal implementation class
-    class VibratorOLSelector;
     class VibratorPrivate;
     // Pointer to the internal implementation
     VibratorPrivate *pImpl;
