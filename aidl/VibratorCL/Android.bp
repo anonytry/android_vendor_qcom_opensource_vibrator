@@ -1,0 +1,17 @@
+cc_library_shared {
+    name: "vendor.qti.hardware.vibratorCL.impl",
+    vendor: true,
+    srcs: [
+        "Vibrator.cpp",
+    ],
+    include_dirs: [
+        "vendor/qcom/opensource/pal/inc",
+    ],
+    shared_libs: [
+        "libcutils",
+        "libutils",
+        "liblog",
+        "libbinder_ndk",
+        "android.hardware.vibrator-V2-ndk",
+    ],
+}
