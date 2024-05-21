@@ -18,8 +18,12 @@ cc_library_shared {
         "android.hardware.vibrator-V2-ndk",
         "vendor.qti.hardware.vibratorOL.impl",
         "vendor.qti.hardware.vibratorCL.impl",
+        "vendor.qti.hardware.vibratorSel.impl",
     ],
-    export_include_dirs: ["include"]
+    export_include_dirs: ["include"],
+    include_dirs: [
+        "external/expat/lib",
+    ]
 }
 
 cc_binary {
@@ -41,5 +45,41 @@ cc_binary {
         "libbinder_ndk",
         "android.hardware.vibrator-V2-ndk",
         "vendor.qti.hardware.vibrator.impl",
+    ],
+}
+
+prebuilt_etc {
+    name: "HapticsPolicy.xml",
+    vendor: true,
+    src: "HapticsPolicy.xml",
+}
+
+cc_fuzz {
+    name: "vendor.qti.hardware.vibrator-service.aidl_fuzzer",
+    vendor: true,
+
+    shared_libs: [
+        "liblog",
+        "libbase",
+        "libutils",
+        "libcutils",
+        "libbinder",
+        "libbinder_ndk",
+        "android.hardware.vibrator-V2-ndk",
+        "vendor.qti.hardware.vibrator.impl",
+    ],
+
+    static_libs: [
+        "libbinder_random_parcel",
+    ],
+
+    srcs: [
+        "fuzzer.cpp",
+    ],
+
+    cflags: [
+        "-Wno-unused-parameter",
+        "-Wno-unused-variable",
+        "-fexceptions",
     ],
 }

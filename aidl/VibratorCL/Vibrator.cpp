@@ -42,60 +42,17 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <thread>
-//#include "PalApi.h"
-#include "PalDefs.h"
 #include <mutex>
-//#include "rx_haptics_api.h"
+
+#include "PalApi.h"
+#include "PalDefs.h"
+#include "rx_haptics_api.h"
 #include "Vibrator.h"
 
 namespace aidl {
 namespace android {
 namespace hardware {
 namespace vibrator {
-//TO-DO: Temporary hack until audio library compilation moves to Android.bp
-    const int PAL_PARAM_ID_HAPTICS_CNFG = 64;
-#define PARAM_ID_HAPTICS_WAVE_DESIGNER_STOP_PARAM 0x0800139A
-#define PARAM_ID_HAPTICS_WAVE_DESIGNER_UPDATE_PARAM 0x0800139B
-    typedef struct param_id_haptics_wave_designer_stop_param_t param_id_haptics_wave_designer_wave_designer_stop_param_t;
-    struct param_id_haptics_wave_designer_stop_param_t {
-        uint32_t channel_mask; // Mask to indicate to which channel(s) a valid STOP command was sent.
-    };
-    typedef enum {
-        PAL_STREAM_HAPTICS_RINGTONE,
-        PAL_STREAM_HAPTICS_TOUCH = 1,
-    } pal_stream_haptics_type_t;
-    typedef struct  pal_param_haptics_cnfg_t {
-        pal_stream_haptics_type_t mode;
-        int16_t  effect_id;
-        float    amplitude;
-        int16_t  strength;
-        int32_t time;
-        int16_t ch_mask;
-    } pal_param_haptics_cnfg_t;
-    int32_t pal_init() {
-        return 0;
-    }
-    int32_t pal_stream_open(struct pal_stream_attributes* attributes,
-        uint32_t no_of_devices, struct pal_device* devices,
-        uint32_t no_of_modifiers, struct modifier_kv* modifiers,
-        pal_stream_callback cb, void* cookie,
-        pal_stream_handle_t** stream_handle) {
-        return 0;
-    }
-    int32_t pal_stream_close(pal_stream_handle_t* stream_handle) {
-        return 0;
-    }
-    int32_t pal_stream_start(pal_stream_handle_t* stream_handle) {
-        return 0;
-    }
-    int32_t pal_stream_stop(pal_stream_handle_t* stream_handle) {
-        return 0;
-    }
-    int32_t pal_stream_set_param(pal_stream_handle_t* stream_handle,
-        uint32_t param_id, pal_param_payload* param_payload) {
-        return 0;
-    }
-//TO-DO: End of hack
 
 #define VIB_INVALID_VALUE           -1
 #define WAKEUP_MIN_IDLE_CHECK   (1000 * 10)
