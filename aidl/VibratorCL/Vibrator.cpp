@@ -317,6 +317,8 @@ ndk::ScopedAStatus VibratorCL::off() {
 
     ALOGE("VibratorCL off ");
     ret = offCurrentEffect();
+    if (ret)
+        StopHapticsStream();
 
     cv.notify_all();
     ActiveUsecase = false;
